@@ -45,6 +45,8 @@ const TESTS = [
   {n:"наш домен CF :2083",  u:"https://shilla-land-rp.com:2083/", cors:false},
   {n:"CF :2053 (гости)",    u:"https://shilla-land-rp.com:2053/4d760798", cors:false},
   {n:"CF :8443 (новый)",    u:"https://shilla-land-rp.com:8443/116a5553", cors:false},
+  {n:"наш домен :443 (стандарт)", u:"https://shilla-land-rp.com/", cors:false},
+  {n:"контроль порта: чужой :8443", u:"https://speed.cloudflare.com:8443/", cors:false},
 ];
 const log=document.getElementById('log');
 const verdict=document.getElementById('verdict');

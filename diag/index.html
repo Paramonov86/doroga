@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Диагностика VPN</title>
+<style>
+  :root{color-scheme:dark}
+  body{background:#0d0d0d;color:#d7ffd7;font:15px/1.4 ui-monospace,Menlo,Consolas,monospace;margin:0;padding:14px;-webkit-text-size-adjust:100%}
+  h1{font-size:16px;color:#fff;margin:0 0 8px}
+  .verdict{font-size:20px;font-weight:700;margin:10px 0;padding:10px;border-radius:8px;background:#1b1b1b}
+  .vpn{color:#3bd;border:1px solid #3bd}
+  .novpn{color:#fb3;border:1px solid #fb3}
+  .dead{color:#f66;border:1px solid #f66}
+  #log{white-space:pre-wrap;margin:10px 0}
+  .ok{color:#6f6}.fail{color:#f66}.warn{color:#fb3}
+  .row{border-bottom:1px solid #222;padding:3px 0}
+  a{color:#9cf}
+  button{background:#222;color:#d7ffd7;border:1px solid #444;border-radius:6px;padding:8px 12px;font:inherit}
+  .muted{color:#888;font-size:13px}
+  .big{font-size:19px;color:#fff}
+</style>
+</head>
+<body>
+<h1>ДИАГНОСТИКА СЕТИ / VPN</h1>
+<div id="verdict" class="verdict">…запускаю тесты…</div>
+<div id="exit" class="big"></div>
+<div id="log"></div>
+<button id="again">Проверить ещё раз</button>
+<button id="copy">Скопировать отчёт</button>
+<div class="muted" id="hint"></div>
+<div class="muted" style="margin-top:14px">
+  Открой эту страницу ДВА раза: сначала с выключенным VPN, потом с включённым — и сравни.
+  Тихий IP (http, откроется как 404 если доступен):
+  <a id="quiet" href="http://213.218.161.10:2082/x321099678f429cc4">http://213.218.161.10:2082/x321099678f429cc4</a>
+</div>
+<script>
+const NL_IP4 = ["185.246.190.189","213.218.161.10"];
+const TESTS = [
+  {n:"exit IP (ipify)",   u:"https://api.ipify.org?format=json",  cors:true, ip:true},
+  {n:"exit IP (ipify64)", u:"https://api64.ipify.org?format=json",cors:true, ip:true},
+  {n:"ya.ru  (RU -> direct)", u:"https://ya.ru/", cors:false},
+  {n:"google generate_204",   u:"https://www.google.com/generate_204", cors:false},
+  {n:"Cloudflare 100KB",  u:"https://speed.cloudflare.com/__down?bytes=100000", cors:false, size:100000},
+  {n:"наш домен CF :2083",  u:"https://shilla-land-rp.com:2083/", cors:false},
+  {n:"CF :2053 (гости)",    u:"https://shilla-land-rp.com:2053/4d760798", cors:false},
+  {n:"CF :8443 (новый)",    u:"https://shilla-land-rp.com:8443/116a5553", cors:false},
+];
+const log=document.getElementById('log');
+const verdict=document.getElementById('verdict');
+const exitEl=document.getElementById('exit');
+const hint=document.getElementById('hint');
+let exitIPs=[], lines=[], tally={ok:0,fail:0};
+
+function stamp(){const d=new Date();return d.toLocaleTimeString('ru-RU');}
+function htmlEscape(s){return (s+'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+async function probe(t, ms){
+  const c=new AbortController(); const to=setTimeout(()=>c.abort(), ms||6000);
+  const t0=performance.now();
+  try{
+    const r=await fetch(t.u,{method:'GET',mode:(t.cors?'cors':'no-cors'),cache:'no-store',signal:c.signal,credentials:'omit'});
+    const dt=performance.now()-t0; clearTimeout(to);
+    let data=null, status=r.type==='opaque'?'opaque':r.status;
+    if(t.cors){ try{ data=await r.text(); }catch(e){} }
+    return {ok:true,ms:dt,status:status,data:data};
+  }catch(e){
+    clearTimeout(to);
+    return {ok:false,ms:performance.now()-t0,err:(e.name||'err')+(e.message?(' '+e.message.split('\n')[0]):'')};
+  }
+}
+
+function line(cls, text){
+  const div=document.createElement('div'); div.className='row '+cls;
+  div.innerHTML=text; log.appendChild(div);
+  lines.push(text.replace(/<[^>]+>/g,''));
+}
+
+async function run(){
+  log.innerHTML=''; lines=[]; exitIPs=[]; tally={ok:0,fail:0};
+  verdict.className='verdict'; verdict.textContent='…запускаю тесты…';
+  exitEl.textContent=''; hint.textContent='Страница: '+location.href+'   Время: '+stamp();
+  line('', '<b>Время:</b> '+stamp()+'  <b>URL:</b> '+htmlEscape(location.href));
+  for(const t of TESTS){
+    const r=await probe(t, 6000);
+    if(r.ok){
+      tally.ok++;
+      let extra='';
+      if(t.ip && r.data){
+        try{ const j=JSON.parse(r.data); const ip=j.ip; exitIPs.push(ip); extra=' -> <b>'+htmlEscape(ip)+'</b>'; }catch(e){}
+      }
+      if(t.size && r.ms){ const kbps=Math.round((t.size*8/1000)/(r.ms/1000)); extra+='  ≈'+kbps+' кбит/с'; }
+      line('ok', '✅ '+htmlEscape(t.n)+'  '+Math.round(r.ms)+' мс  ['+r.status+']'+extra);
+    }else{
+      tally.fail++;
+      line('fail','❌ '+htmlEscape(t.n)+'  '+Math.round(r.ms)+' мс  '+htmlEscape(r.err||'fail'));
+    }
+  }
+  // вердикт
+  const vpnIP = exitIPs.find(ip=>NL_IP4.some(n=>ip===n||ip.startsWith(n.split('.').slice(0,2).join('.'))));
+  const viaNL = exitIPs.some(ip=>NL_IP4.includes(ip) || ip.startsWith('185.246.') || ip.startsWith('213.218.'));
+  verdict.className='verdict '+(viaNL?'vpn':(exitIPs.length?'novpn':'dead'));
+  if(viaNL){ verdict.textContent='VPN ВКЛЮЧЁН — выход через NL ('+exitIPs.join(', ')+')'; }
+  else if(exitIPs.length){ verdict.textContent='ТРАФИК ИДЁТ НАПРЯМУЮ (без VPN) — exit IP '+exitIPs.join(', '); }
+  else { verdict.textContent='НЕТ ДОСТУПА — не смог определить exit IP (сеть глухо зарезана)'; }
+  exitEl.innerHTML='Проверок ок: <b>'+tally.ok+'</b>, провалов: <b>'+tally.fail+'</b>';
+  lines.unshift('ИТОГ: '+(viaNL?'VPN через NL':(exitIPs.length?'напрямую (без VPN)':'нет доступа'))+' ; exit='+exitIPs.join('/')+' ; ok='+tally.ok+' fail='+tally.fail);
+  lines.unshift('Диагностика '+stamp());
+}
+
+document.getElementById('again').onclick=run;
+document.getElementById('copy').onclick=async()=>{
+  try{ await navigator.clipboard.writeText(lines.join('\n')); document.getElementById('copy').textContent='Скопировано ✓'; setTimeout(()=>document.getElementById('copy').textContent='Скопировать отчёт',1500); }
+  catch(e){ alert('Не вышло скопировать — просто сфоткай экран'); }
+};
+run();
+</script>
+</body>
+</html>

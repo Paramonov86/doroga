@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Порт-тест клиники</title>
+<style>
+  body{background:#0d0d0d;color:#d7ffd7;font:16px/1.5 -apple-system,Roboto,system-ui,sans-serif;margin:0;padding:14px}
+  h1{font-size:18px;color:#fff;margin:0 0 6px}
+  p{color:#9c9;font-size:14px}
+  .grid{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  a.btn{display:block;min-width:88px;text-align:center;text-decoration:none;color:#0d0d0d;background:#7fe;border-radius:10px;padding:14px 8px;font-weight:700;font-size:18px}
+  a.btn.big{background:#8f8}
+  .sec{margin-top:18px;border-top:1px solid #333;padding-top:12px}
+  a.link{color:#9cf;display:block;margin:8px 0;word-break:break-all}
+  .ok{color:#6f6}.bad{color:#f66}
+  code{background:#1b1b1b;padding:2px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>ПОРТ-ТЕСТ КЛИНИКИ</h1>
+<p>Открывай ссылку за ссылкой. Если появилась страница
+<b>«You have reached this page on port N»</b> — порт <span class="ok">открыт</span>.
+Если висит и не грузится / ошибка — порт <span class="bad">закрыт</span>.
+Возвращайся назад и жми следующий.</p>
+
+<div class="sec">
+<b>Порты, которые важны для VPN:</b>
+<div class="grid">
+  <a class="btn" href="http://portquiz.net:443/">:443</a>
+  <a class="btn" href="http://portquiz.net:8443/">:8443</a>
+  <a class="btn" href="http://portquiz.net:2053/">:2053</a>
+  <a class="btn" href="http://portquiz.net:2083/">:2083</a>
+  <a class="btn" href="http://portquiz.net:2082/">:2082</a>
+  <a class="btn" href="http://portquiz.net:2052/">:2052</a>
+  <a class="btn" href="http://portquiz.net:2096/">:2096</a>
+  <a class="btn" href="http://portquiz.net:8080/">:8080</a>
+  <a class="btn" href="http://portquiz.net:9443/">:9443</a>
+  <a class="btn" href="http://portquiz.net:80/">:80</a>
+</div>
+</div>
+
+<div class="sec">
+<b>Наш домен — где режет (DNS или имя):</b>
+<a class="link" href="http://shilla-land-rp.com/">http://shilla-land-rp.com/ &nbsp;←&nbsp; если откроется — блок по TLS-имени (SNI), не по DNS</a>
+<a class="link" href="https://shilla-land-rp.com/">https://shilla-land-rp.com/ &nbsp;←&nbsp; контроль (ожидаем провал)</a>
+</div>
+
+<div class="sec">
+<b>Дополнительно (редкие порты):</b>
+<div class="grid">
+  <a class="btn" href="http://portquiz.net:2087/">:2087</a>
+  <a class="btn" href="http://portquiz.net:2095/">:2095</a>
+  <a class="btn" href="http://portquiz.net:10443/">:10443</a>
+</div>
+</div>
+
+<div class="sec">
+<p>Ещё проверь: <b>Настройки → Сеть → Private DNS</b> = <code>dns.google</code>,
+потом снова открой эти тесты. Если закрытые порты/домен вдруг откроются — значит резал их DNS.</p>
+</div>
+</body>
+</html>
